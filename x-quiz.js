@@ -1,3 +1,4 @@
+document.addEventListener("DOMContentLoaded", () => {
 gsap.registerPlugin(ScrollTrigger);
 
 let lastScroll = window.scrollY;
@@ -11,7 +12,6 @@ const q1 = params.get("q1");
 const q2Raw = params.get("q2");
 const bundleKey = params.get("result") || "longevity"; // fallback result
 
-document.addEventListener("DOMContentLoaded", () => {
   console.log("this is working");
   const headerEl = document.getElementById("intro-header");
   const bodyEl = document.getElementById("intro-body");
@@ -249,3 +249,5 @@ function openEmailModal() {
 function showMessage(msg) {
   alert(msg); // Replace with real UI logic
 }
+
+});
