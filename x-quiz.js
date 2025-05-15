@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("load", () => {
   gsap.registerPlugin(ScrollTrigger);
 
   let lastScroll = window.scrollY;
