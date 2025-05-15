@@ -67,14 +67,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (currentScroll > lastScroll && currentScroll > 100) {
       // scrolling down
-      gsap.to(".test-header", {
+      gsap.to(".site-header", {
         y: "-100%",
         duration: 0.3,
         ease: "power2.out",
       });
     } else {
       // scrolling up
-      gsap.to(".test-header", { y: "0%", duration: 0.3, ease: "power2.out" });
+      gsap.to(".site-header", { y: "0%", duration: 0.3, ease: "power2.out" });
     }
 
     lastScroll = currentScroll;
