@@ -1,21 +1,20 @@
 document.addEventListener("DOMContentLoaded", () => {
-gsap.registerPlugin(ScrollTrigger);
+  gsap.registerPlugin(ScrollTrigger);
 
-let lastScroll = window.scrollY;
-let ticking = false;
+  let lastScroll = window.scrollY;
+  let ticking = false;
 
-// Query string parsing
-const params = new URLSearchParams(window.location.search);
-const name = params.get("name");
-const email = params.get("email");
-const q1 = params.get("q1");
-const q2Raw = params.get("q2");
-const bundleKey = params.get("result") || "longevity"; // fallback result
+  const params = new URLSearchParams(window.location.search);
+  const name = params.get("name");
+  const email = params.get("email");
+  const q1 = params.get("q1");
+  const q2Raw = params.get("q2");
+  const bundleKey = params.get("result") || "longevity";
 
   console.log("this is working");
+
   const headerEl = document.getElementById("intro-header");
   const bodyEl = document.getElementById("intro-body");
-  const formattedQ2 = formatQ2Answers(q2Raw);
 
   function formatQ2Answers(q2String) {
     if (!q2String) return "";
@@ -38,6 +37,8 @@ const bundleKey = params.get("result") || "longevity"; // fallback result
     return `${allButLast}, and ${last}`;
   }
 
+  const formattedQ2 = formatQ2Answers(q2Raw);
+
   if (name && q1 && q2Raw) {
     headerEl.textContent = `Congrats ${name}, on completing the X Quiz`;
     bodyEl.innerHTML = `Your focus on <strong>${q1}</strong> and your current challenges with ${formattedQ2} led us here. This plan was made to restore your energy, support your skin, and help you age on your terms.`;
@@ -46,21 +47,127 @@ const bundleKey = params.get("result") || "longevity"; // fallback result
     bodyEl.textContent = `We’ve curated a premium product plan to help you feel more energized, supported, and in control — no matter where you’re starting from. Let’s make your next chapter your strongest one.`;
   }
 
-  // Set shopping link once DOM is ready
   const shopLinkEl = document.querySelector(".sticky-cta a.main");
   if (shopLinkEl) {
     shopLinkEl.href = buildShoppingLink(bundleKey);
   }
+
+  let formSubmitted = false;
+  if (email && !formSubmitted) {
+    submitToHubSpot(email);
+    formSubmitted = true;
+    showMessage("We’ve sent your results to your inbox.");
+  }
+
+  const emailButton = document.getElementById("email-results-btn");
+  if (emailButton) {
+    emailButton.addEventListener("click", () => {
+      if (email && formSubmitted) {
+        showMessage("Looks like we already sent them!");
+      } else if (!formSubmitted) {
+        openEmailModal();
+      }
+    });
+  }
+
+  const products = gsap.utils.toArray(".product");
+  const buttons = gsap.utils.toArray(".product-bar button");
+  let hasInitialized = false;
+
+  gsap.matchMedia().add("(min-width: 800px)", () => {
+    gsap.fromTo(
+      ".sticky-cta",
+      { autoAlpha: 1 },
+      {
+        autoAlpha: 0,
+        ease: "power2.out",
+        scrollTrigger: {
+          trigger: ".shop-link",
+          start: "top 90%",
+          end: "bottom 90%",
+          toggleActions: "play reverse play reverse",
+        },
+      }
+    );
+
+    gsap.to(".sticky-cta", {
+      height: 100,
+      boxShadow: "0 0px 20px rgba(253, 208, 111, 1)",
+      ease: "power2.out",
+      scrollTrigger: {
+        trigger: ".outro-text",
+        start: "bottom 99%",
+        endTrigger: ".results-page-container",
+        end: "bottom bottom",
+        toggleActions: "play complete none reverse",
+        pinSpacing: false,
+        markers: false,
+      },
+    });
+  });
+
+  products.forEach((product, index) => {
+    ScrollTrigger.create({
+      trigger: product,
+      start: "left center",
+      end: "center center",
+      onEnter: () => activateTab(index),
+      onEnterBack: () => activateTab(index > 0 ? index - 1 : 0),
+      horizontal: true,
+      scroller: "#productTrack",
+    });
+  });
+
+  function activateTab(index, suppressScroll = false) {
+    buttons.forEach((btn, i) => {
+      btn.classList.toggle("active", i === index);
+      if (i === index && !suppressScroll && hasInitialized) {
+        btn.scrollIntoView({
+          behavior: "smooth",
+          inline: "center",
+          block: "nearest",
+        });
+      }
+    });
+    const allDescriptions = document.querySelectorAll(".product-content");
+    allDescriptions.forEach((desc) => desc.classList.remove("active"));
+
+    const productId = buttons[index].dataset.id;
+    const activeDesc = document.querySelector(
+      `.product-content[data-id="${productId}"]`
+    );
+    if (activeDesc) {
+      activeDesc.classList.add("active");
+    }
+  }
+
+  buttons.forEach((button, i) => {
+    button.addEventListener("click", () => {
+      const target = products[i];
+      const container = document.querySelector("#productTrack");
+      const scrollLeft =
+        target.offsetLeft - container.offsetWidth / 2 + target.offsetWidth / 2;
+
+      gsap.to(container, {
+        scrollLeft,
+        duration: 0.6,
+        ease: "power2.out",
+      });
+
+      activateTab(i);
+    });
+  });
+
+  activateTab(0, true);
+  hasInitialized = true;
 });
 
 function handleScroll() {
   const currentScroll = window.scrollY;
 
   if (currentScroll > lastScroll && currentScroll > 100) {
-    // scrolling down
     gsap.to(".site-header", { y: "-100%", duration: 0.3, ease: "power2.out" });
   } else {
-    // scrolling up
     gsap.to(".site-header", { y: "0%", duration: 0.3, ease: "power2.out" });
   }
 
@@ -134,120 +241,10 @@ function submitToHubSpot(email) {
     .catch((err) => console.error("Fetch error:", err));
 }
 
-// Email modal logic
-let formSubmitted = false;
-if (email && !formSubmitted) {
-  submitToHubSpot(email);
-  formSubmitted = true;
-  showMessage("We’ve sent your results to your inbox.");
-}
-
-document.getElementById("email-results-btn").addEventListener("click", () => {
-  if (email && formSubmitted) {
-    showMessage("Looks like we already sent them!");
-  } else if (!formSubmitted) {
-    openEmailModal();
-  }
-});
-
-// sticky-cta desktop animations
-const products = gsap.utils.toArray(".product");
-const buttons = gsap.utils.toArray(".product-bar button");
-let hasInitialized = false;
-
-gsap.matchMedia().add("(min-width: 800px)", () => {
-  gsap.fromTo(
-    ".sticky-cta",
-    { autoAlpha: 1 },
-    {
-      autoAlpha: 0,
-      ease: "power2.out",
-      scrollTrigger: {
-        trigger: ".shop-link",
-        start: "top 90%", // when the top of .shop-link hits bottom of viewport
-        end: "bottom 90%", // until the bottom of .shop-link hits top of viewport
-        toggleActions: "play reverse play reverse",
-      },
-    }
-  );
-  gsap.to(".sticky-cta", {
-    height: 100,
-    boxShadow: "0 0px 20px rgba(253, 208, 111, 1)",
-    ease: "power2.out",
-    scrollTrigger: {
-      trigger: ".outro-text",
-      start: "bottom 99%",
-      endTrigger: ".results-page-container", // when the top of .shop-link hits bottom of viewport
-      end: "bottom bottom", // until the bottom of .shop-link hits top of viewport
-      toggleActions: "play complete none reverse",
-      pinSpacing: false,
-      markers: false,
-    },
-  });
-});
-
-products.forEach((product, index) => {
-  ScrollTrigger.create({
-    trigger: product,
-    start: "left center",
-    end: "center center",
-    onEnter: () => activateTab(index),
-    onEnterBack: () => activateTab(index > 0 ? index - 1 : 0),
-    horizontal: true,
-    scroller: "#productTrack",
-  });
-});
-
-function activateTab(index, suppressScroll = false) {
-  buttons.forEach((btn, i) => {
-    btn.classList.toggle("active", i === index);
-    if (i === index && !suppressScroll && hasInitialized) {
-      btn.scrollIntoView({
-        behavior: "smooth",
-        inline: "center",
-        block: "nearest",
-      });
-    }
-  });
-  const allDescriptions = document.querySelectorAll(".product-content");
-  allDescriptions.forEach((desc) => desc.classList.remove("active"));
-
-  const productId = buttons[index].dataset.id;
-  const activeDesc = document.querySelector(
-    `.product-content[data-id="${productId}"]`
-  );
-  if (activeDesc) {
-    activeDesc.classList.add("active");
-  }
-}
-
-buttons.forEach((button, i) => {
-  button.addEventListener("click", () => {
-    const target = products[i];
-    const container = document.querySelector("#productTrack");
-    const scrollLeft =
-      target.offsetLeft - container.offsetWidth / 2 + target.offsetWidth / 2;
-
-    gsap.to(container, {
-      scrollLeft,
-      duration: 0.6,
-      ease: "power2.out",
-    });
-
-    activateTab(i); // Optional if you want instant tab update
-  });
-});
-
-activateTab(0, true);
-hasInitialized = true;
-
 function openEmailModal() {
-  // Build modal HTML or display existing one
   alert("Enter your email in the modal here...");
 }
 
 function showMessage(msg) {
-  alert(msg); // Replace with real UI logic
+  alert(msg);
 }
-
-});
