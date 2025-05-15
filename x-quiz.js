@@ -120,7 +120,6 @@ window.addEventListener("load", () => {
       if (res.ok) {
         console.log("Submitted to HubSpot");
         localStorage.setItem(submissionKey, "true");
-        showMessage("Your results are on their way!");
       } else {
         console.error("Submission error:", res.statusText);
       }
