@@ -1,6 +1,6 @@
 // Wait until window is fully loaded and required elements are in DOM
 window.addEventListener("load", () => {
-  waitForElement(".sticky-cta", initXQuizPage);
+  waitForElement(".outro", initXQuizPage);
 
   function waitForElement(selector, callback, timeout = 7000) {
     const start = Date.now();
