@@ -4,17 +4,22 @@ document.addEventListener("DOMContentLoaded", () => {
   let lastScroll = window.scrollY;
   let ticking = false;
 
+  // Query string parsing
   const params = new URLSearchParams(window.location.search);
   const name = params.get("name");
   const email = params.get("email");
   const q1 = params.get("q1");
   const q2Raw = params.get("q2");
-  const bundleKey = params.get("result") || "longevity";
-
-  console.log("this is working");
-
+  const bundleKey = params.get("result") || "longevity"; // fallback result
+  const bundleItemMap = {
+    longevity: 1052,
+    fuel: 958,
+    gut: 824,
+    xBundle: 566,
+  };
   const headerEl = document.getElementById("intro-header");
   const bodyEl = document.getElementById("intro-body");
+  const formattedQ2 = formatQ2Answers(q2Raw);
 
   function formatQ2Answers(q2String) {
     if (!q2String) return "";
@@ -37,8 +42,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${allButLast}, and ${last}`;
   }
 
-  const formattedQ2 = formatQ2Answers(q2Raw);
-
   if (name && q1 && q2Raw) {
     headerEl.textContent = `Congrats ${name}, on completing the X Quiz`;
     bodyEl.innerHTML = `Your focus on <strong>${q1}</strong> and your current challenges with ${formattedQ2} led us here. This plan was made to restore your energy, support your skin, and help you age on your terms.`;
@@ -47,11 +50,91 @@ document.addEventListener("DOMContentLoaded", () => {
     bodyEl.textContent = `We’ve curated a premium product plan to help you feel more energized, supported, and in control — no matter where you’re starting from. Let’s make your next chapter your strongest one.`;
   }
 
+  function buildShoppingLink(resultKey) {
+    const alias = getWebAlias();
+    const itemId = bundleItemMap[resultKey] || 1052;
+    return `https://shop.xyngular.com/${alias}/Shopping/item?itemId=${itemId}&Flow=Shopping`;
+  }
+
+  // Set shopping link once DOM is ready
   const shopLinkEl = document.querySelector(".sticky-cta a.main");
   if (shopLinkEl) {
     shopLinkEl.href = buildShoppingLink(bundleKey);
   }
 
+  function handleScroll() {
+    const currentScroll = window.scrollY;
+
+    if (currentScroll > lastScroll && currentScroll > 100) {
+      // scrolling down
+      gsap.to(".test-header", {
+        y: "-100%",
+        duration: 0.3,
+        ease: "power2.out",
+      });
+    } else {
+      // scrolling up
+      gsap.to(".test-header", { y: "0%", duration: 0.3, ease: "power2.out" });
+    }
+
+    lastScroll = currentScroll;
+    ticking = false;
+  }
+
+  window.addEventListener("scroll", () => {
+    if (!ticking) {
+      window.requestAnimationFrame(handleScroll);
+      ticking = true;
+    }
+  });
+
+  function getWebAlias() {
+    const hostname = window.location.hostname;
+    const pathParts = window.location.pathname.split("/");
+    if (hostname.includes("myxyngular.com") && pathParts.length > 2) {
+      return pathParts[2];
+    }
+    return "corporphan";
+  }
+
+  function submitToHubSpot(email) {
+    const resultUrl = window.location.href;
+    const shoppingLink = buildShoppingLink(bundleKey);
+
+    const data = {
+      fields: [
+        { name: "email", value: email },
+        { name: "firstname", value: name || "" },
+        { name: "quiz_result", value: bundleKey },
+        { name: "quiz_referring_web_alias", value: getWebAlias() },
+        { name: "quiz_shopping_link", value: shoppingLink },
+      ],
+      context: {
+        pageUri: resultUrl,
+        pageName: document.title,
+      },
+    };
+
+    fetch(
+      "https://api.hsforms.com/submissions/v3/integration/submit/4195958/a0c903a2-bdeb-41ea-82b4-93963ab68296",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }
+    )
+      .then((res) => {
+        if (res.ok) {
+          console.log("Submitted to HubSpot");
+          showMessage("Your results are on their way!");
+        } else {
+          console.error("Submission error:", res.statusText);
+        }
+      })
+      .catch((err) => console.error("Fetch error:", err));
+  }
+
+  // Email modal logic
   let formSubmitted = false;
   if (email && !formSubmitted) {
     submitToHubSpot(email);
@@ -59,17 +142,15 @@ document.addEventListener("DOMContentLoaded", () => {
     showMessage("We’ve sent your results to your inbox.");
   }
 
-  const emailButton = document.getElementById("email-results-btn");
-  if (emailButton) {
-    emailButton.addEventListener("click", () => {
-      if (email && formSubmitted) {
-        showMessage("Looks like we already sent them!");
-      } else if (!formSubmitted) {
-        openEmailModal();
-      }
-    });
-  }
+  document.getElementById("email-results-btn").addEventListener("click", () => {
+    if (email && formSubmitted) {
+      showMessage("Looks like we already sent them!");
+    } else if (!formSubmitted) {
+      openEmailModal();
+    }
+  });
 
+  // sticky-cta desktop animations
   const products = gsap.utils.toArray(".product");
   const buttons = gsap.utils.toArray(".product-bar button");
   let hasInitialized = false;
@@ -83,13 +164,12 @@ document.addEventListener("DOMContentLoaded", () => {
         ease: "power2.out",
         scrollTrigger: {
           trigger: ".shop-link",
-          start: "top 90%",
-          end: "bottom 90%",
+          start: "top 90%", // when the top of .shop-link hits bottom of viewport
+          end: "bottom 90%", // until the bottom of .shop-link hits top of viewport
           toggleActions: "play reverse play reverse",
         },
       }
     );
-
     gsap.to(".sticky-cta", {
       height: 100,
       boxShadow: "0 0px 20px rgba(253, 208, 111, 1)",
@@ -97,8 +177,8 @@ document.addEventListener("DOMContentLoaded", () => {
       scrollTrigger: {
         trigger: ".outro-text",
         start: "bottom 99%",
-        endTrigger: ".results-page-container",
-        end: "bottom bottom",
+        endTrigger: ".results-page-container", // when the top of .shop-link hits bottom of viewport
+        end: "bottom bottom", // until the bottom of .shop-link hits top of viewport
         toggleActions: "play complete none reverse",
         pinSpacing: false,
         markers: false,
@@ -154,97 +234,19 @@ document.addEventListener("DOMContentLoaded", () => {
         ease: "power2.out",
       });
 
-      activateTab(i);
+      activateTab(i); // Optional if you want instant tab update
     });
   });
 
   activateTab(0, true);
   hasInitialized = true;
-});
 
-function handleScroll() {
-  const currentScroll = window.scrollY;
-
-  if (currentScroll > lastScroll && currentScroll > 100) {
-    gsap.to(".site-header", { y: "-100%", duration: 0.3, ease: "power2.out" });
-  } else {
-    gsap.to(".site-header", { y: "0%", duration: 0.3, ease: "power2.out" });
+  function openEmailModal() {
+    // Build modal HTML or display existing one
+    alert("Enter your email in the modal here...");
   }
 
-  lastScroll = currentScroll;
-  ticking = false;
-}
-
-window.addEventListener("scroll", () => {
-  if (!ticking) {
-    window.requestAnimationFrame(handleScroll);
-    ticking = true;
+  function showMessage(msg) {
+    alert(msg); // Replace with real UI logic
   }
 });
-
-function getWebAlias() {
-  const hostname = window.location.hostname;
-  const pathParts = window.location.pathname.split("/");
-  if (hostname.includes("myxyngular.com") && pathParts.length > 2) {
-    return pathParts[2];
-  }
-  return "corporphan";
-}
-
-const bundleItemMap = {
-  longevity: 1052,
-  fuel: 958,
-  gut: 824,
-  xBundle: 566,
-};
-
-function buildShoppingLink(resultKey) {
-  const alias = getWebAlias();
-  const itemId = bundleItemMap[resultKey] || 1052;
-  return `https://shop.xyngular.com/${alias}/Shopping/item?itemId=${itemId}&Flow=Shopping`;
-}
-
-function submitToHubSpot(email) {
-  const resultUrl = window.location.href;
-  const shoppingLink = buildShoppingLink(bundleKey);
-
-  const data = {
-    fields: [
-      { name: "email", value: email },
-      { name: "firstname", value: name || "" },
-      { name: "quiz_result", value: bundleKey },
-      { name: "quiz_referring_web_alias", value: getWebAlias() },
-      { name: "quiz_shopping_link", value: shoppingLink },
-    ],
-    context: {
-      pageUri: resultUrl,
-      pageName: document.title,
-    },
-  };
-
-  fetch(
-    "https://api.hsforms.com/submissions/v3/integration/submit/4195958/a0c903a2-bdeb-41ea-82b4-93963ab68296",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }
-  )
-    .then((res) => {
-      if (res.ok) {
-        console.log("Submitted to HubSpot");
-        showMessage("Your results are on their way!");
-      } else {
-        console.error("Submission error:", res.statusText);
-      }
-    })
-    .catch((err) => console.error("Fetch error:", err));
-}
-
-function openEmailModal() {
-  alert("Enter your email in the modal here...");
-}
-
-function showMessage(msg) {
-  alert(msg);
-}
