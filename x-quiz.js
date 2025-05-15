@@ -173,7 +173,7 @@ window.addEventListener("load", () => {
         autoAlpha: 0,
         ease: "power2.out",
         scrollTrigger: {
-          trigger: ".shop-link",
+          trigger: ".product-description",
           start: "top 90%",
           end: "bottom 90%",
           toggleActions: "play reverse play reverse",
