@@ -80,38 +80,48 @@ window.addEventListener("load", () => {
     }
 
     function submitToHubSpot(email) {
-      const resultUrl = window.location.href;
-      const shoppingLink = buildShoppingLink(bundleKey);
+  const submissionKey = `submitted_${email}`;
+  if (localStorage.getItem(submissionKey)) {
+    console.log("Email already submitted. Skipping...");
+    return;
+  }
 
-      const data = {
-        fields: [
-          { name: "email", value: email },
-          { name: "firstname", value: name || "" },
-          { name: "quiz_result", value: bundleKey },
-          { name: "quiz_referring_web_alias", value: getWebAlias() },
-          { name: "quiz_shopping_link", value: shoppingLink },
-        ],
-        context: {
-          pageUri: resultUrl,
-          pageName: document.title,
-        },
-      };
+  const resultUrl = window.location.href;
+  const shoppingLink = buildShoppingLink(bundleKey);
 
-      fetch("https://api.hsforms.com/submissions/v3/integration/submit/4195958/a0c903a2-bdeb-41ea-82b4-93963ab68296", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      })
-        .then((res) => {
-          if (res.ok) {
-            console.log("Submitted to HubSpot");
-            showMessage("Your results are on their way!");
-          } else {
-            console.error("Submission error:", res.statusText);
-          }
-        })
-        .catch((err) => console.error("Fetch error:", err));
+  const data = {
+    fields: [
+      { name: "email", value: email },
+      { name: "firstname", value: name || "" },
+      { name: "quiz_result", value: bundleKey },
+      { name: "quiz_referring_web_alias", value: getWebAlias() },
+      { name: "quiz_shopping_link", value: shoppingLink },
+    ],
+    context: {
+      pageUri: resultUrl,
+      pageName: document.title,
+    },
+  };
+
+  fetch(
+    "https://api.hsforms.com/submissions/v3/integration/submit/4195958/a0c903a2-bdeb-41ea-82b4-93963ab68296",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
     }
+  )
+    .then((res) => {
+      if (res.ok) {
+        console.log("Submitted to HubSpot");
+        localStorage.setItem(submissionKey, "true");
+        showMessage("Your results are on their way!");
+      } else {
+        console.error("Submission error:", res.statusText);
+      }
+    })
+    .catch((err) => console.error("Fetch error:", err));
+}
 
     let formSubmitted = false;
     if (email && !formSubmitted) {
