@@ -85,6 +85,11 @@ window.addEventListener("load", () => {
     console.log("Email already submitted. Skipping...");
     return;
   }
+  if (!email || !email.includes("@")) {
+    console.warn("Invalid or missing email. Submission skipped.");
+    return;
+  }
+
 
   const resultUrl = window.location.href;
   const shoppingLink = buildShoppingLink(bundleKey);
@@ -124,10 +129,11 @@ window.addEventListener("load", () => {
 }
 
     let formSubmitted = false;
-    if (email && !formSubmitted) {
-      submitToHubSpot(email);
-      formSubmitted = true;
-    }
+    if (email && email.includes("@") && !formSubmitted) {
+  submitToHubSpot(email);
+  formSubmitted = true;
+  showMessage("We’ve sent your results to your inbox.");
+}
 
     const emailBtn = document.getElementById("email-results-btn");
     if (emailBtn) {
