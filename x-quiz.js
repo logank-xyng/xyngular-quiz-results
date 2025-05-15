@@ -117,7 +117,6 @@ window.addEventListener("load", () => {
     if (email && !formSubmitted) {
       submitToHubSpot(email);
       formSubmitted = true;
-      showMessage("We’ve sent your results to your inbox.");
     }
 
     const emailBtn = document.getElementById("email-results-btn");
