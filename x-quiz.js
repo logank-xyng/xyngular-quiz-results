@@ -12,6 +12,7 @@ const q2Raw = params.get("q2");
 const bundleKey = params.get("result") || "longevity"; // fallback result
 
 document.addEventListener("DOMContentLoaded", () => {
+  console.log("this is working");
   const headerEl = document.getElementById("intro-header");
   const bodyEl = document.getElementById("intro-body");
   const formattedQ2 = formatQ2Answers(q2Raw);
